@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Country Currencies In USD</title>
   <style>
     body {
@@ -26,12 +27,7 @@
       height: 100%;
       width: 0%;
       background: linear-gradient(to right, gold, orange);
-      animation: loading 3s ease-in-out infinite;
-    }
-    @keyframes loading {
-      0% { width: 0%; }
-      50% { width: 80%; }
-      100% { width: 0%; }
+      transition: width 2s ease;
     }
 
     .container {
@@ -124,12 +120,15 @@
 
     async function fetchRates() {
       try {
-        const res = await fetch("https://api.exchangerate.host/latest?base=USD");
-        const data = await res.json();
+        // Start loading animation
+        loadingBar.style.width = "50%";
 
-        if (!data || !data.rates) throw new Error("No currency rates received");
+        const res = await fetch("https://api.frankfurter.app/latest?from=USD");
+        const data = await res.json();
+        if (!data || !data.rates) throw new Error("No rates");
 
         countries.sort((a, b) => a.name.localeCompare(b.name));
+
         countries.forEach(country => {
           const rate = data.rates[country.currency];
           const card = document.createElement("div");
@@ -137,14 +136,16 @@
           card.innerHTML = `
             <img src="https://flagcdn.com/w40/${country.code.toLowerCase()}.png" />
             <h3>${country.name}</h3>
-            <p>${country.currency} = ${rate ? (1 / rate).toFixed(4) : 'N/A'} USD</p>
-            <button onclick="showChart('${country.currency}', '${country.name}')">Show Graph</button>
+            <p>${country.currency} = ${rate ? rate.toFixed(4) : 'N/A'} USD</p>
+            <button ${rate ? `onclick="showChart('${country.currency}', '${country.name}')"` : "disabled"}>${rate ? "Show Graph" : "No Graph"}</button>
           `;
           container.appendChild(card);
         });
+
+        loadingBar.style.width = "100%";
       } catch (error) {
         console.error("Fetch error:", error.message);
-        errorDiv.innerText = "⚠️ Could not load live exchange rates. Showing fallback with N/A.";
+        errorDiv.innerText = "⚠️ Could not load exchange rates. Showing fallback with N/A.";
         countries.sort((a, b) => a.name.localeCompare(b.name));
         countries.forEach(country => {
           const card = document.createElement("div");
@@ -158,17 +159,21 @@
           container.appendChild(card);
         });
       } finally {
-        loadingBarContainer.style.display = "none";
-        container.style.display = "flex";
+        setTimeout(() => {
+          loadingBarContainer.style.display = "none";
+          container.style.display = "flex";
+        }, 1000); // Let bar show for a bit before hiding
       }
     }
 
     async function showChart(currency, name) {
       try {
-        const res = await fetch(`https://api.exchangerate.host/timeseries?start_date=${getPastDate(90)}&end_date=${getToday()}&base=USD&symbols=${currency}`);
+        const url = `https://api.frankfurter.app/${getPastDate(90)}..${getToday()}?from=USD&to=${currency}`;
+        const res = await fetch(url);
         const data = await res.json();
+
         const labels = Object.keys(data.rates);
-        const values = labels.map(d => 1 / data.rates[d][currency]);
+        const values = labels.map(d => data.rates[d][currency]);
 
         const ctx = document.getElementById("currencyChart").getContext("2d");
         if (window.myChart) window.myChart.destroy();
