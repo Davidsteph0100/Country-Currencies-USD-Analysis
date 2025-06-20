@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Country Currencies In USD</title>
   <style>
     body {
@@ -12,17 +12,21 @@
       margin: 0;
       padding: 0;
     }
+
     h1 {
       text-align: center;
       padding: 20px;
       color: gold;
+      font-size: 28px;
     }
+
     #loadingBarContainer {
       width: 100%;
       height: 6px;
       background-color: #333;
       overflow: hidden;
     }
+
     #loadingBar {
       height: 100%;
       width: 0%;
@@ -37,6 +41,7 @@
       padding: 10px;
       display: none;
     }
+
     .card {
       background-color: #2d2d2d;
       border: 1px solid gold;
@@ -45,56 +50,86 @@
       padding: 15px;
       width: 220px;
       text-align: center;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
+
     .card img {
       width: 40px;
       height: 25px;
+      margin-bottom: 10px;
     }
+
     .card button {
       background-color: gold;
       border: none;
-      padding: 8px;
+      padding: 8px 12px;
       margin-top: 10px;
       cursor: pointer;
       font-weight: bold;
       border-radius: 5px;
     }
+
     .card button[disabled] {
       background-color: gray;
       cursor: not-allowed;
     }
+
     #chartModal {
       position: fixed;
       top: 0;
       left: 0;
-      background-color: rgba(0,0,0,0.8);
+      background-color: rgba(0, 0, 0, 0.9);
       width: 100%;
       height: 100%;
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 999;
-    }
-    #chartModalContent {
-      background-color: #fff;
-      color: black;
       padding: 20px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 700px;
     }
+
+    #chartModalContent {
+      background-color: #1c1c1c;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow: auto;
+      padding: 20px;
+      box-shadow: 0 0 20px gold;
+    }
+
     #chartModal button {
       float: right;
-      background-color: red;
+      background-color: crimson;
       color: white;
       border: none;
-      padding: 5px 10px;
+      padding: 6px 12px;
+      font-weight: bold;
+      border-radius: 5px;
+      margin-bottom: 10px;
       cursor: pointer;
     }
+
+    canvas {
+      width: 100% !important;
+      height: 400px !important;
+    }
+
     #errorMsg {
       text-align: center;
       color: red;
       padding: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .card {
+        width: 90%;
+      }
+
+      canvas {
+        height: 300px !important;
+      }
     }
   </style>
 </head>
@@ -120,7 +155,6 @@
 
     async function fetchRates() {
       try {
-        // Start loading animation
         loadingBar.style.width = "50%";
 
         const res = await fetch("https://api.frankfurter.app/latest?from=USD");
@@ -128,7 +162,6 @@
         if (!data || !data.rates) throw new Error("No rates");
 
         countries.sort((a, b) => a.name.localeCompare(b.name));
-
         countries.forEach(country => {
           const rate = data.rates[country.currency];
           const card = document.createElement("div");
@@ -162,7 +195,7 @@
         setTimeout(() => {
           loadingBarContainer.style.display = "none";
           container.style.display = "flex";
-        }, 1000); // Let bar show for a bit before hiding
+        }, 1000);
       }
     }
 
@@ -186,17 +219,25 @@
               data: values,
               borderColor: 'gold',
               backgroundColor: 'rgba(255, 215, 0, 0.2)',
-              tension: 0.3
+              tension: 0.3,
+              pointRadius: 0,
             }]
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
-              x: { display: true },
-              y: { display: true }
+              x: { ticks: { color: 'white' }, grid: { color: '#555' } },
+              y: { ticks: { color: 'white' }, grid: { color: '#555' } }
+            },
+            plugins: {
+              legend: {
+                labels: { color: 'white' }
+              }
             }
           }
         });
+
         document.getElementById("chartModal").style.display = "flex";
       } catch (err) {
         alert("⚠️ Could not load chart data for " + name);
