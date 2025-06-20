@@ -44,6 +44,10 @@
       font-weight: bold;
       border-radius: 5px;
     }
+    .card button[disabled] {
+      background-color: gray;
+      cursor: not-allowed;
+    }
     #chartModal {
       position: fixed;
       top: 0;
@@ -72,10 +76,16 @@
       padding: 5px 10px;
       cursor: pointer;
     }
+    #errorMsg {
+      text-align: center;
+      color: red;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
   <h1>🌍 Country Currencies in USD</h1>
+  <div id="errorMsg"></div>
   <div class="container" id="countriesContainer"></div>
 
   <div id="chartModal">
@@ -285,13 +295,16 @@
 { name: "Zimbabwe", code: "ZW", currency: "ZWL" } ];
 
     const container = document.getElementById("countriesContainer");
+    const errorDiv = document.getElementById("errorMsg");
 
     async function fetchRates() {
       try {
         const res = await fetch("https://api.exchangerate.host/latest?base=USD");
         const data = await res.json();
-        countries.sort((a, b) => a.name.localeCompare(b.name));
 
+        if (!data || !data.rates) throw new Error("No currency rates received");
+
+        countries.sort((a, b) => a.name.localeCompare(b.name));
         countries.forEach(country => {
           const rate = data.rates[country.currency];
           const card = document.createElement("div");
@@ -305,39 +318,56 @@
           container.appendChild(card);
         });
       } catch (error) {
-        console.error("Failed to fetch exchange rates:", error);
+        console.error("Fetch error:", error.message);
+        errorDiv.innerText = "⚠️ Could not load live exchange rates. Showing fallback with N/A.";
+        countries.sort((a, b) => a.name.localeCompare(b.name));
+        countries.forEach(country => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <img src="https://flagcdn.com/w40/${country.code.toLowerCase()}.png" />
+            <h3>${country.name}</h3>
+            <p>${country.currency} = N/A USD</p>
+            <button disabled>No Graph</button>
+          `;
+          container.appendChild(card);
+        });
       }
     }
 
     async function showChart(currency, name) {
-      const res = await fetch(`https://api.exchangerate.host/timeseries?start_date=${getPastDate(90)}&end_date=${getToday()}&base=USD&symbols=${currency}`);
-      const data = await res.json();
-      const labels = Object.keys(data.rates);
-      const values = labels.map(d => 1 / data.rates[d][currency]);
+      try {
+        const res = await fetch(`https://api.exchangerate.host/timeseries?start_date=${getPastDate(90)}&end_date=${getToday()}&base=USD&symbols=${currency}`);
+        const data = await res.json();
+        const labels = Object.keys(data.rates);
+        const values = labels.map(d => 1 / data.rates[d][currency]);
 
-      const ctx = document.getElementById("currencyChart").getContext("2d");
-      if (window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: `${currency} to USD - 3 Months (${name})`,
-            data: values,
-            borderColor: 'gold',
-            backgroundColor: 'rgba(255, 215, 0, 0.2)',
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { display: true },
-            y: { display: true }
+        const ctx = document.getElementById("currencyChart").getContext("2d");
+        if (window.myChart) window.myChart.destroy();
+        window.myChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: `${currency} to USD - 3 Months (${name})`,
+              data: values,
+              borderColor: 'gold',
+              backgroundColor: 'rgba(255, 215, 0, 0.2)',
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: { display: true },
+              y: { display: true }
+            }
           }
-        }
-      });
-      document.getElementById("chartModal").style.display = "flex";
+        });
+        document.getElementById("chartModal").style.display = "flex";
+      } catch (err) {
+        alert("⚠️ Could not load chart data for " + name);
+      }
     }
 
     function getToday() {
