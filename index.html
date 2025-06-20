@@ -282,28 +282,31 @@
 { name: "Vietnam", code: "VN", currency: "VND" },
 { name: "Yemen", code: "YE", currency: "YER" },
 { name: "Zambia", code: "ZM", currency: "ZMW" },
-{ name: "Zimbabwe", code: "ZW", currency: "ZWL" }
-    ];
+{ name: "Zimbabwe", code: "ZW", currency: "ZWL" } ];
 
     const container = document.getElementById("countriesContainer");
 
     async function fetchRates() {
-      const res = await fetch("https://api.exchangerate.host/latest?base=USD");
-      const data = await res.json();
-      countries.sort((a, b) => a.name.localeCompare(b.name));
+      try {
+        const res = await fetch("https://api.exchangerate.host/latest?base=USD");
+        const data = await res.json();
+        countries.sort((a, b) => a.name.localeCompare(b.name));
 
-      countries.forEach(country => {
-        const rate = data.rates[country.currency];
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <img src="https://flagcdn.com/w40/${country.code.toLowerCase()}.png" />
-          <h3>${country.name}</h3>
-          <p>${country.currency} = ${rate ? (1 / rate).toFixed(4) : 'N/A'} USD</p>
-          <button onclick="showChart('${country.currency}', '${country.name}')">Show Graph</button>
-        `;
-        container.appendChild(card);
-      });
+        countries.forEach(country => {
+          const rate = data.rates[country.currency];
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <img src="https://flagcdn.com/w40/${country.code.toLowerCase()}.png" />
+            <h3>${country.name}</h3>
+            <p>${country.currency} = ${rate ? (1 / rate).toFixed(4) : 'N/A'} USD</p>
+            <button onclick="showChart('${country.currency}', '${country.name}')">Show Graph</button>
+          `;
+          container.appendChild(card);
+        });
+      } catch (error) {
+        console.error("Failed to fetch exchange rates:", error);
+      }
     }
 
     async function showChart(currency, name) {
@@ -348,7 +351,9 @@
       return d.toISOString().split('T')[0];
     }
 
-    fetchRates();
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchRates();
+    });
   </script>
 </body>
 </html>
